@@ -153,7 +153,6 @@ else() # neither iPhone nor Android
   elseif(${PLATFORM_LINUX})
     append(SRC
       gui_thread_qt.cpp
-      http_client_curl.cpp
       http_thread_qt.cpp
       http_thread_qt.hpp
       http_uploader_dummy.cpp
@@ -165,6 +164,12 @@ else() # neither iPhone nor Android
       secure_storage_qt.cpp
       crypto/ed25519_monocypher.cpp
     )
+    if (PLATFORM_SAILFISH)
+      # The app sandbox can't spawn curl.
+      append(SRC http_client_qt.cpp)
+    else()
+      append(SRC http_client_curl.cpp)
+    endif()
   endif()
 endif()
 
