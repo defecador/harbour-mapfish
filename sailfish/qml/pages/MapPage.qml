@@ -14,6 +14,17 @@ Page {
     IconButton {
         anchors {
             top: parent.top; topMargin: Theme.paddingLarge * 2
+            right: downloadButton.left; rightMargin: Theme.paddingLarge
+        }
+        icon.source: "image://theme/icon-m-search"
+        icon.color: "black"
+        onClicked: pageStack.push(Qt.resolvedUrl("SearchPage.qml"))
+    }
+
+    IconButton {
+        id: downloadButton
+        anchors {
+            top: parent.top; topMargin: Theme.paddingLarge * 2
             right: parent.right; rightMargin: Theme.horizontalPageMargin
         }
         icon.source: "image://theme/icon-m-cloud-download"

@@ -19,6 +19,8 @@ add_library(comaps_app SHARED
   src/egl_context_factory.hpp
   src/map_item.cpp
   src/map_item.hpp
+  src/search_model.cpp
+  src/search_model.hpp
 )
 set_target_properties(comaps_app PROPERTIES AUTOMOC ON OUTPUT_NAME comaps)
 target_compile_options(comaps_app PRIVATE ${OMIM_WARNING_FLAGS})
