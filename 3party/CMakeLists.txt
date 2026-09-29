@@ -44,7 +44,7 @@ if (NOT WITH_SYSTEM_PROVIDED_3PARTY)
   # Add protobuf library.
   add_subdirectory(protobuf)
 
-  if (NOT PLATFORM_LINUX)
+  if (NOT PLATFORM_LINUX OR PLATFORM_SAILFISH)
     add_subdirectory(freetype)
     add_subdirectory(icu)
     add_subdirectory(harfbuzz)

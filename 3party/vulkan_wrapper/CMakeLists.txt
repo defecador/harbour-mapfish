@@ -17,7 +17,7 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC .)
 
-if (PLATFORM_LINUX)
+if (PLATFORM_LINUX AND NOT PLATFORM_SAILFISH)
   target_compile_definitions(${PROJECT_NAME} PRIVATE VK_USE_PLATFORM_XLIB_KHR)
 endif()
 

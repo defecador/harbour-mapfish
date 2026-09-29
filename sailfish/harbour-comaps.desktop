@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+X-Nemo-Application-Type=silica-qt5
+Icon=harbour-comaps
+Exec=harbour-comaps
+Name=CoMaps
+
+[X-Sailjail]
+OrganizationName=app.comaps
+ApplicationName=comaps
+Permissions=Internet;Location

@@ -218,3 +218,6 @@ tools/unix/maps/settings.sh
 # VS Code
 .vscode
 .cache
+
+# Sailfish OS shadow builds
+/build-sailfish*/

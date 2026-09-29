@@ -174,7 +174,7 @@ omim_add_library(${PROJECT_NAME} ${SRC})
 # Do not include glm's CMakeLists.txt, because it's outdated and not necessary.
 target_include_directories(${PROJECT_NAME} PUBLIC ${OMIM_ROOT}/3party/glm)
 
-if (PLATFORM_LINUX OR PLATFORM_WIN)
+if ((PLATFORM_LINUX AND NOT PLATFORM_SAILFISH) OR PLATFORM_WIN)
   find_package(OpenGL)
 endif()
 
@@ -203,7 +203,9 @@ target_link_libraries(${PROJECT_NAME}
     expat::expat
     $<$<BOOL:${PLATFORM_MAC}>:-framework\ OpenGL>
     $<$<BOOL:${PLATFORM_MAC}>:-framework\ Metal>
-    $<$<BOOL:${PLATFORM_LINUX}>:OpenGL::GL>
+    $<$<AND:$<BOOL:${PLATFORM_LINUX}>,$<NOT:$<BOOL:${PLATFORM_SAILFISH}>>>:OpenGL::GL>
+    $<$<BOOL:${PLATFORM_SAILFISH}>:EGL>
+    $<$<BOOL:${PLATFORM_SAILFISH}>:GLESv2>
     $<$<BOOL:${PLATFORM_WIN}>:OpenGL::GL>
 )
 

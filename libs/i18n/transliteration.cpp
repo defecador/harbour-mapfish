@@ -55,7 +55,7 @@ void Transliteration::Init(std::string const & icuDataDir)
 
   // This function should be called before the first ICU operation that will require the loading of
   // an ICU data file. On Linux, data file is loaded automatically from the shared library.
-#ifndef OMIM_OS_LINUX
+#if !defined(OMIM_OS_LINUX) || defined(OMIM_OS_SAILFISH)
   u_setDataDirectory(icuDataDir.c_str());
 #else
   UNUSED_VALUE(icuDataDir);

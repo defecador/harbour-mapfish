@@ -105,7 +105,10 @@ elseif (${CMAKE_BUILD_TYPE} MATCHES "Rel")
   add_definitions(-DRELEASE)
   if (NOT MSVC)
     add_compile_options(-O3)
-    set (CMAKE_INTERPROCEDURAL_OPTIMIZATION True)
+    # In the Sailfish build engine the static archives lose their LTO symbol index.
+    if (NOT PLATFORM_SAILFISH)
+      set (CMAKE_INTERPROCEDURAL_OPTIMIZATION True)
+    endif()
   endif()
 else()
   message(FATAL_ERROR "Unknown build type: " ${CMAKE_BUILD_TYPE})
@@ -137,7 +140,11 @@ find_package(Threads REQUIRED)
 
 # Scripts
 
-if (NOT PLATFORM_IPHONE AND NOT PLATFORM_ANDROID)
+if (PLATFORM_SAILFISH)
+  # Sailfish OS ships Qt 5.6, and Silica only exists for it.
+  find_package(Qt5 5.6 COMPONENTS REQUIRED Core Network Gui Qml Quick Positioning)
+  message(STATUS "Found Qt version: ${Qt5_VERSION}")
+elseif (NOT PLATFORM_IPHONE AND NOT PLATFORM_ANDROID)
   list(APPEND qt_components Core Network)
   if (NOT SKIP_QT_GUI OR NOT SKIP_TESTS OR PYBINDINGS)
     list(APPEND qt_components Widgets)
@@ -169,7 +176,8 @@ if (USE_PCH)
 endif()
 
 # Should be on the root level, not in 3party, so tests can get these dependencies.
-if (PLATFORM_LINUX)
+# Sailfish bundles them from 3party, like Android: its system copies have no headers in the SDK.
+if (PLATFORM_LINUX AND NOT PLATFORM_SAILFISH)
   find_package(ICU COMPONENTS uc i18n data REQUIRED)
   find_package(Freetype REQUIRED)
   find_package(harfbuzz REQUIRED)
@@ -203,8 +211,12 @@ include_directories("${OMIM_ROOT}/3party/boost")
 # Used in qt/ and shaders/
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-# Detect python virtual environment and use it if available
-if(DEFINED ENV{VIRTUAL_ENV})
+# Detect python virtual environment and use it if available.
+# The Sailfish build engine can't run the host's .venv, and only needs Python for shaders:
+# protobuf is used by the style generator, which runs on the host before packaging.
+if(PLATFORM_SAILFISH)
+  message(STATUS "Sailfish build: using the build engine's python3, skipping the protobuf check")
+elseif(DEFINED ENV{VIRTUAL_ENV})
   set(PYTHON_VENV_PATH "$ENV{VIRTUAL_ENV}")
   set(Python3_EXECUTABLE "python3")
   message(STATUS "==> Python Virtual Environment detected : ${PYTHON_VENV_PATH}"  "  ==>  "  "Using python command: ${Python3_EXECUTABLE}" )
@@ -217,8 +229,9 @@ elseif(EXISTS "${OMIM_ROOT}/.venv")
   message(STATUS "==> Python Virtual Environment detected : ${OMIM_ROOT}/.venv"  "  ==>  "  "Using python command: ${Python3_EXECUTABLE}" )
 endif()
 
+if(NOT PLATFORM_SAILFISH)
 execute_process(
-    COMMAND ${Python3_EXECUTABLE} -c "import google.protobuf; 
+    COMMAND ${Python3_EXECUTABLE} -c "import google.protobuf;
 print(google.protobuf.__version__)"
     RESULT_VARIABLE PROTOBUF_CHECK
     OUTPUT_VARIABLE PROTOBUF_VERSION
@@ -234,6 +247,7 @@ if(PROTOBUF_CHECK EQUAL 0)
     endif()
 else()
     message(FATAL_ERROR "Python protobuf not found. Run ./configure.sh to provision a local .venv with the correct version (>=3.20, <4.0), or set SKIP_PYTHON_VENV=1 to manage protobuf via your system Python.")
+endif()
 endif()
 
 
@@ -256,4 +270,8 @@ omim_add_test_subdirectory(libs/qt_tstfrm)
 
 if (PLATFORM_ANDROID)
   add_subdirectory(android/sdk/src/main/cpp)
+endif()
+
+if (PLATFORM_SAILFISH)
+  add_subdirectory(sailfish)
 endif()

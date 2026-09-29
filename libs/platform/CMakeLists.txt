@@ -194,7 +194,9 @@ target_link_libraries(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     $<$<BOOL:${PLATFORM_DESKTOP}>:Qt6::Core>
-    $<$<BOOL:${PLATFORM_LINUX}>:Qt6::Network>
+    $<$<AND:$<BOOL:${PLATFORM_LINUX}>,$<NOT:$<BOOL:${PLATFORM_SAILFISH}>>>:Qt6::Network>
+    $<$<BOOL:${PLATFORM_SAILFISH}>:Qt5::Core>
+    $<$<BOOL:${PLATFORM_SAILFISH}>:Qt5::Network>
     $<$<BOOL:${PLATFORM_WIN}>:Qt6::Network>
     $<$<BOOL:${PLATFORM_WIN}>:shlwapi>  # PathIsDirectoryEmptyA
     $<$<BOOL:${PLATFORM_MAC}>:

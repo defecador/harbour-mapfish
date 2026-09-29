@@ -34,6 +34,12 @@
 #define OMIM_OS_WINDOWS_NATIVE
 #endif
 
+#elif defined(OMIM_OS_SAILFISH)
+// Shares the Linux platform layer, but renders through EGL/GLES3 like the other phones.
+#define OMIM_OS_LINUX
+#define OMIM_OS_NAME "sailfish"
+#define OMIM_OS_MOBILE
+
 #else
 #define OMIM_OS_LINUX
 #define OMIM_OS_NAME "linux"

@@ -86,9 +86,14 @@ Platform::Platform()
   auto const homeDir = GetEnv("HOME");
   CHECK(homeDir, ("Can't retrieve home directory"));
 
+#ifdef OMIM_OS_SAILFISH
+  // Sailjail only lets the app write under ~/.config/<organization>/<application>.
+  m_settingsDir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation).toStdString();
+#else
   // XDG config directory, usually ~/.config/CoMaps/
   m_settingsDir =
       JoinPath(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation).toStdString(), "CoMaps");
+#endif
   if (!IsFileExistsByFullPath(JoinPath(m_settingsDir, SETTINGS_FILE_NAME)) && !MkDirRecursively(m_settingsDir))
     MYTHROW(FileSystemException, ("Can't create directory", m_settingsDir));
   m_settingsDir += '/';
@@ -108,6 +113,9 @@ Platform::Platform()
         JoinPath(*execDir, "..", "share"),                    // installed version with packages
         JoinPath(*execDir, "..", "CoMaps"),                   // installed version without packages
         JoinPath(*execDir, "..", "share", "comaps", "data"),  // flatpak-build
+#ifdef OMIM_OS_SAILFISH
+        JoinPath(*execDir, "..", "share", "harbour-comaps", "data"),
+#endif
     };
     for (auto const & dir : dirsToScan)
     {
@@ -126,7 +134,12 @@ Platform::Platform()
     // The writableLocation does the same for AppDataLocation, AppLocalDataLocation,
     // and GenericDataLocation. Provided, that test mode is not enabled, then
     // first it checks ${XDG_DATA_HOME}, if empty then it falls back to ${HOME}/.local/share
+#ifdef OMIM_OS_SAILFISH
+    // ~/.local/share/<organization>/<application>, the other directory sailjail allows.
+    m_writableDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString();
+#else
     m_writableDir = JoinPath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString(), "CoMaps");
+#endif
 
     if (!MkDirRecursively(m_writableDir))
       MYTHROW(FileSystemException, ("Can't create writable directory:", m_writableDir));
