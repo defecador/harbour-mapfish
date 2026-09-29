@@ -14,7 +14,6 @@
 #include "base/assert.hpp"
 #include "base/logging.hpp"
 
-#include <cstdlib>
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
@@ -26,17 +25,17 @@ namespace sailfish
 {
 namespace
 {
-Framework * g_framework = nullptr;
+Framework * g_mapFramework = nullptr;
 
 uint8_t constexpr kInvalidPointer = df::TouchEvent::INVALID_MASKED_POINTER;
 }  // namespace
 
 void MapItem::SetFramework(Framework * framework)
 {
-  g_framework = framework;
+  g_mapFramework = framework;
 }
 
-MapItem::MapItem(QQuickItem * parent) : QQuickItem(parent), m_framework(*g_framework)
+MapItem::MapItem(QQuickItem * parent) : QQuickItem(parent), m_framework(*g_mapFramework)
 {
   setFlag(ItemHasContents, true);
   setAcceptedMouseButtons(Qt::LeftButton);
@@ -122,14 +121,6 @@ void MapItem::CreateEngine()
   m_framework.CreateDrapeEngine(make_ref(m_contextFactory), std::move(p));
   m_framework.EnterForeground();
   m_engineCreated = true;
-
-  // Debugging aid until there is a downloader UI: fetch one country and show it.
-  if (char const * country = std::getenv("COMAPS_DOWNLOAD"))
-  {
-    LOG(LINFO, ("Downloading", country));
-    m_framework.GetStorage().DownloadNode(country);
-    m_framework.ShowNode(country);
-  }
 }
 
 void MapItem::geometryChanged(QRectF const & newGeometry, QRectF const & oldGeometry)

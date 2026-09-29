@@ -13,6 +13,8 @@ set_property(TARGET icuuc APPEND PROPERTY INTERFACE_LINK_LIBRARIES icui18n)
 # All of the app lives in a shared library: see src/main.cpp for why the executable can't.
 add_library(comaps_app SHARED
   src/app_main.cpp
+  src/country_model.cpp
+  src/country_model.hpp
   src/egl_context_factory.cpp
   src/egl_context_factory.hpp
   src/map_item.cpp
