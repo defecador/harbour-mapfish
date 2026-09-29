@@ -24,6 +24,10 @@ __attribute__((visibility("default"))) int ComapsMain(int argc, char * argv[])
   // Sets the organization and application names from the desktop file, which the platform layer
   // needs to find the directories sailjail allows.
   std::unique_ptr<QGuiApplication> app(SailfishApp::application(argc, argv));
+  // SailfishApp doesn't always pick these up from the desktop file; they must match its
+  // [X-Sailjail] section, or the sandbox forbids the data directories.
+  QCoreApplication::setOrganizationName(QStringLiteral("app.comaps"));
+  QCoreApplication::setApplicationName(QStringLiteral("comaps"));
 
   Platform & platform = GetPlatform();
   LOG(LINFO, ("CoMaps", platform.Version(), "on Sailfish OS, Qt", qVersion()));

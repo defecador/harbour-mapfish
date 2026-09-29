@@ -14,6 +14,8 @@
 #include "base/assert.hpp"
 #include "base/logging.hpp"
 
+#include <cstdlib>
+
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
 #include <QtGui/QTouchEvent>
@@ -120,6 +122,14 @@ void MapItem::CreateEngine()
   m_framework.CreateDrapeEngine(make_ref(m_contextFactory), std::move(p));
   m_framework.EnterForeground();
   m_engineCreated = true;
+
+  // Debugging aid until there is a downloader UI: fetch one country and show it.
+  if (char const * country = std::getenv("COMAPS_DOWNLOAD"))
+  {
+    LOG(LINFO, ("Downloading", country));
+    m_framework.GetStorage().DownloadNode(country);
+    m_framework.ShowNode(country);
+  }
 }
 
 void MapItem::geometryChanged(QRectF const & newGeometry, QRectF const & oldGeometry)
