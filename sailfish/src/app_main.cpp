@@ -34,22 +34,22 @@ __attribute__((visibility("default"))) int ComapsMain(int argc, char * argv[])
   std::unique_ptr<QGuiApplication> app(SailfishApp::application(argc, argv));
   // SailfishApp doesn't always pick these up from the desktop file; they must match its
   // [X-Sailjail] section, or the sandbox forbids the data directories.
-  QCoreApplication::setOrganizationName(QStringLiteral("app.comaps"));
-  QCoreApplication::setApplicationName(QStringLiteral("comaps"));
+  QCoreApplication::setOrganizationName(QStringLiteral("app.mapfish"));
+  QCoreApplication::setApplicationName(QStringLiteral("mapfish"));
 
   Platform & platform = GetPlatform();
-  LOG(LINFO, ("CoMaps", platform.Version(), "on Sailfish OS, Qt", qVersion()));
+  LOG(LINFO, ("Mapfish, CoMaps", platform.Version(), "on Sailfish OS, Qt", qVersion()));
   LOG(LINFO, ("Resources:", platform.ResourcesDir(), "Writable:", platform.WritableDir()));
 
   int result = 0;
   {
     Framework framework;
     sailfish::MapItem::SetFramework(&framework);
-    qmlRegisterType<sailfish::MapItem>("app.comaps", 1, 0, "MapItem");
+    qmlRegisterType<sailfish::MapItem>("app.mapfish", 1, 0, "MapItem");
     sailfish::CountryModel::SetFramework(&framework);
-    qmlRegisterType<sailfish::CountryModel>("app.comaps", 1, 0, "CountryModel");
+    qmlRegisterType<sailfish::CountryModel>("app.mapfish", 1, 0, "CountryModel");
     sailfish::SearchModel::SetFramework(&framework);
-    qmlRegisterType<sailfish::SearchModel>("app.comaps", 1, 0, "SearchModel");
+    qmlRegisterType<sailfish::SearchModel>("app.mapfish", 1, 0, "SearchModel");
 
     sailfish::PlacePage placePage(framework);
     sailfish::LocationController locationController(framework);

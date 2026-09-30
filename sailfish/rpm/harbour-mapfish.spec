@@ -1,9 +1,11 @@
-Name:       harbour-comaps
+Name:       harbour-mapfish
 Summary:    Offline maps and navigation
 Version:    0.1
 Release:    1
 License:    ASL 2.0
-URL:        https://codeberg.org/comaps/comaps
+# Mapfish is an unofficial Sailfish OS port, highly inspired by and built on top of CoMaps
+# (https://codeberg.org/comaps/comaps), itself a fork of Organic Maps. Not affiliated with either
+# project. See sailfish/README.md.
 Source0:    %{name}-%{version}.tar.bz2
 Requires:   sailfishsilica-qt5 >= 0.10.9
 BuildRequires:  pkgconfig(sailfishapp) >= 1.0.2
@@ -27,7 +29,8 @@ BuildRequires:  cmake >= 3.22
 %define __requires_exclude ^libcomaps.*$
 
 %description
-CoMaps: offline maps, search and navigation, built on OpenStreetMap data.
+Mapfish: offline maps, search and navigation, built on OpenStreetMap data.
+Highly inspired by and built on top of CoMaps.
 
 %prep
 %setup -q -n %{name}-%{version}

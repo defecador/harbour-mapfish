@@ -1,11 +1,11 @@
 [Desktop Entry]
 Type=Application
 X-Nemo-Application-Type=silica-qt5
-Icon=harbour-comaps
-Exec=harbour-comaps
-Name=CoMaps
+Icon=harbour-mapfish
+Exec=harbour-mapfish
+Name=Mapfish
 
 [X-Sailjail]
-OrganizationName=app.comaps
-ApplicationName=comaps
+OrganizationName=app.mapfish
+ApplicationName=mapfish
 Permissions=Internet;Location

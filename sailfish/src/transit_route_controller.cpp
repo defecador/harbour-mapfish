@@ -23,8 +23,9 @@ namespace sailfish
 namespace
 {
 // api.transitous.org requires a User-Agent identifying the app and a way to reach its author;
-// there's no per-user identity in it, just the project.
-char const kUserAgent[] = "harbour-comaps/0.1 (+https://github.com/comaps/comaps)";
+// there's no per-user identity in it, just the project. TODO: point this at Mapfish's own
+// repo/contact once it has one published.
+char const kUserAgent[] = "harbour-mapfish/0.1 (Sailfish OS; unofficial CoMaps-based port)";
 char const kApiUrl[] = "https://api.transitous.org/api/v6/plan";
 
 QString FormatTransitDuration(int seconds)

@@ -1,4 +1,4 @@
-project(harbour-comaps)
+project(harbour-mapfish)
 
 include(FindPkgConfig)
 pkg_search_module(SAILFISHAPP sailfishapp REQUIRED)

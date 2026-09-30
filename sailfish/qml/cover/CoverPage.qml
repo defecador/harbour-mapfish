@@ -4,6 +4,6 @@ import Sailfish.Silica 1.0
 CoverBackground {
     Label {
         anchors.centerIn: parent
-        text: "CoMaps"
+        text: "Mapfish"
     }
 }
