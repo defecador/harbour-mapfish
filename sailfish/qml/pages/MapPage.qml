@@ -32,4 +32,8 @@ Page {
         icon.color: "black"
         onClicked: pageStack.push(Qt.resolvedUrl("DownloaderPage.qml"))
     }
+
+    PlacePanel {
+        id: placePanel
+    }
 }

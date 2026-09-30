@@ -1,5 +1,6 @@
 #include "sailfish/src/country_model.hpp"
 #include "sailfish/src/map_item.hpp"
+#include "sailfish/src/place_page.hpp"
 #include "sailfish/src/search_model.hpp"
 
 #include "map/framework.hpp"
@@ -10,6 +11,7 @@
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QSurfaceFormat>
+#include <QtQml/QQmlContext>
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickView>
 
@@ -45,12 +47,15 @@ __attribute__((visibility("default"))) int ComapsMain(int argc, char * argv[])
     sailfish::SearchModel::SetFramework(&framework);
     qmlRegisterType<sailfish::SearchModel>("app.comaps", 1, 0, "SearchModel");
 
+    sailfish::PlacePage placePage(framework);
+
     std::unique_ptr<QQuickView> view(SailfishApp::createView());
     // Drape's contexts are OpenGL ES 3 and share textures with Qt Quick's; the Mali driver only
     // shares between contexts of the same version.
     QSurfaceFormat format = view->format();
     format.setVersion(3, 0);
     view->setFormat(format);
+    view->rootContext()->setContextProperty(QStringLiteral("placePage"), &placePage);
     view->setSource(SailfishApp::pathToMainQml());
     view->show();
 
