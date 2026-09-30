@@ -13,6 +13,10 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   if (BUILD_SAILFISH)
     set(PLATFORM_SAILFISH TRUE)
     add_compile_definitions(OMIM_OS_SAILFISH)
+    # On 32-bit Sailfish targets (armv7hl), off_t defaults to 32 bits; this is glibc's standard
+    # way to make it 64-bit instead, which libs/coding/internal/file64_api.hpp requires. A no-op
+    # on 64-bit targets, where off_t is already 64-bit.
+    add_compile_definitions(_FILE_OFFSET_BITS=64)
   else()
     set(PLATFORM_DESKTOP TRUE)
   endif()
