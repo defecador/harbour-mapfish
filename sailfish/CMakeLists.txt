@@ -17,6 +17,8 @@ add_library(comaps_app SHARED
   src/country_model.hpp
   src/egl_context_factory.cpp
   src/egl_context_factory.hpp
+  src/location_controller.cpp
+  src/location_controller.hpp
   src/map_item.cpp
   src/map_item.hpp
   src/place_page.cpp
@@ -33,6 +35,7 @@ target_link_libraries(comaps_app
     drape_frontend
     drape
     platform
+    location_service
     Qt5::Quick
     Qt5::Qml
     Qt5::Gui

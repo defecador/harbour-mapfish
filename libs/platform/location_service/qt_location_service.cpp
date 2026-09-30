@@ -1,23 +1,27 @@
-#include "platform/location_service/qt_location_service.hpp"
+#include "platform/location_service/location_service.hpp"
+#include "platform/location_service/qt_position_source.hpp"
 
 #include "platform/location.hpp"
 
-#include "base/logging.hpp"
-
 #include "std/target_os.hpp"
 
-#include <QGeoPositionInfoSource>
+#include <memory>
 
 namespace
 {
-static location::GpsInfo gpsInfoFromQGeoPositionInfo(QGeoPositionInfo const & i, location::TLocationSource source)
+location::GpsInfo gpsInfoFromQGeoPositionInfo(QGeoPositionInfo const & i, location::TLocationSource source)
 {
   location::GpsInfo info;
   info.m_source = source;
 
   info.m_latitude = i.coordinate().latitude();
   info.m_longitude = i.coordinate().longitude();
+#if defined(OMIM_OS_SAILFISH)
+  // Sailfish's Qt predates QDateTime::toSecsSinceEpoch (added in Qt 5.8).
+  info.m_timestamp = static_cast<double>(i.timestamp().toMSecsSinceEpoch()) / 1000.0;
+#else
   info.m_timestamp = static_cast<double>(i.timestamp().toSecsSinceEpoch());
+#endif
 
   if (i.hasAttribute(QGeoPositionInfo::HorizontalAccuracy))
     info.m_horizontalAccuracy = static_cast<double>(i.attribute(QGeoPositionInfo::HorizontalAccuracy));
@@ -34,7 +38,7 @@ static location::GpsInfo gpsInfoFromQGeoPositionInfo(QGeoPositionInfo const & i,
   return info;
 }
 
-static location::TLocationError tLocationErrorFromQGeoPositionInfoError(QGeoPositionInfoSource::Error error)
+location::TLocationError tLocationErrorFromQGeoPositionInfoError(QGeoPositionInfoSource::Error error)
 {
   location::TLocationError result = location::TLocationError::ENotSupported;
   switch (error)
@@ -42,119 +46,55 @@ static location::TLocationError tLocationErrorFromQGeoPositionInfoError(QGeoPosi
   case QGeoPositionInfoSource::AccessError: result = location::TLocationError::EDenied; break;
   case QGeoPositionInfoSource::ClosedError: result = location::TLocationError::EGPSIsOff; break;
   case QGeoPositionInfoSource::NoError: result = location::TLocationError::ENoError; break;
+#if !defined(OMIM_OS_SAILFISH)
+  // Sailfish's QtPositioning module predates this enumerator.
   case QGeoPositionInfoSource::UpdateTimeoutError: result = location::TLocationError::ETimeout; break;
+#endif
   case QGeoPositionInfoSource::UnknownSourceError: result = location::TLocationError::EUnknown; break;
   default: break;
   }
   return result;
 }
 
-static location::TLocationSource qStringToTLocationSource(QString const & sourceName)
+location::TLocationSource qStringToTLocationSource(std::string const & sourceName)
 {
-  if ("geoclue2" == sourceName)
+  // GpsInfo::IsValid() is keyed off this field, not the coordinates, so every recognized Qt
+  // Positioning backend must map to something other than EUndefined. Sailfish's old geoclue 0.12
+  // plugin reports its source as "geoclue", not "geoclue2".
+  if (sourceName == "geoclue2" || sourceName == "geoclue")
     return location::TLocationSource::EGeoClue2;
 
   return location::TLocationSource::EUndefined;
 }
+
+// Adapts QtPositionSource (plain Qt types only, so moc can parse it on Qt 5.6) to
+// location::LocationService. Not itself a QObject, so it is never handed to moc, which is what
+// lets it freely include platform/location.hpp.
+class QtLocationService : public location::LocationService
+{
+public:
+  QtLocationService(location::LocationObserver & observer, std::string const & sourceName)
+    : LocationService(observer), m_source(sourceName)
+  {
+    QObject::connect(&m_source, &QtPositionSource::locationUpdated, &m_source,
+                      [this](QGeoPositionInfo const & info)
+    { m_observer.OnLocationUpdated(gpsInfoFromQGeoPositionInfo(info, qStringToTLocationSource(m_source.SourceName()))); });
+    QObject::connect(&m_source, &QtPositionSource::errorOccurred, &m_source, [this](QGeoPositionInfoSource::Error error)
+    { m_observer.OnLocationError(tLocationErrorFromQGeoPositionInfoError(error)); });
+  }
+
+  void Start() override
+  {
+    if (m_source.IsValid())
+      m_source.Start();
+  }
+
+  void Stop() override { m_source.Stop(); }
+
+private:
+  QtPositionSource m_source;
+};
 }  // namespace
-
-QtLocationService::QtLocationService(location::LocationObserver & observer, std::string const & sourceName)
-  : LocationService(observer)
-{
-  QVariantMap params;
-  params["desktopId"] = "app.comaps.comaps";
-  m_positionSource = QGeoPositionInfoSource::createSource(QString::fromStdString(sourceName), params, this);
-
-  if (!m_positionSource)
-  {
-    LOG(LWARNING, ("Failed to acquire QGeoPositionInfoSource from ", sourceName));
-    return;
-  }
-
-  if (!connect(m_positionSource, &QGeoPositionInfoSource::positionUpdated, this, &QtLocationService::OnLocationUpdate))
-  {
-    LOG(LERROR, ("Failed to connect the signal:", "positionUpdated"));
-    return;
-  }
-
-  LOG(LDEBUG, ("Signal successfully connected:", "positionUpdated"));
-
-  if (!connect(m_positionSource, &QGeoPositionInfoSource::errorOccurred, this, &QtLocationService::OnErrorOccurred))
-  {
-    LOG(LERROR, ("Failed to connect the signal:", "errorOccurred"));
-    return;
-  }
-  LOG(LDEBUG, ("Signal successfully connected:", "errorOccurred"));
-
-  if (!connect(m_positionSource, &QGeoPositionInfoSource::supportedPositioningMethodsChanged, this,
-               &QtLocationService::OnSupportedPositioningMethodsChanged))
-  {
-    LOG(LERROR, ("Failed to connect the signal:", "supportedPositioningMethodsChanged"));
-    return;
-  }
-  LOG(LDEBUG, ("Signal successfully connected:", "supportedPositioningMethodsChanged"));
-
-  m_positionSource->setUpdateInterval(1000);
-  m_positionSource->setPreferredPositioningMethods(QGeoPositionInfoSource::AllPositioningMethods);
-}
-
-void QtLocationService::OnLocationUpdate(QGeoPositionInfo const & info)
-{
-  if (!info.isValid())
-  {
-    LOG(LWARNING,
-        ("Location update with Invalid timestamp or coordinates from:", m_positionSource->sourceName().toStdString()));
-    return;
-  }
-  auto const & coordinate = info.coordinate();
-  LOG(LDEBUG, ("Location updated with valid coordinates:", coordinate.longitude(), coordinate.latitude()));
-  m_observer.OnLocationUpdated(
-      gpsInfoFromQGeoPositionInfo(info, qStringToTLocationSource(m_positionSource->sourceName())));
-  if (!m_clientIsActive)
-  {
-    m_clientIsActive = true;
-    m_positionSource->startUpdates();
-  }
-}
-
-void QtLocationService::OnErrorOccurred(QGeoPositionInfoSource::Error positioningError)
-{
-  LOG(LWARNING, ("Location error occured QGeoPositionInfoSource::Error code:", positioningError));
-  m_clientIsActive = false;
-  m_observer.OnLocationError(tLocationErrorFromQGeoPositionInfoError(positioningError));
-}
-
-void QtLocationService::OnSupportedPositioningMethodsChanged()
-{
-  auto positioningMethods = m_positionSource->supportedPositioningMethods();
-  LOG(LDEBUG, ("Supported Positioning Method changed for:", m_positionSource->sourceName().toStdString(),
-               "to:", positioningMethods));
-  if (positioningMethods == QGeoPositionInfoSource::NoPositioningMethods)
-  {
-    m_clientIsActive = false;
-    m_observer.OnLocationError(location::TLocationError::EGPSIsOff);
-  }
-}
-
-void QtLocationService::Start()
-{
-  if (m_positionSource)
-  {
-    LOG(LDEBUG, ("Starting Updates from:", m_positionSource->sourceName().toStdString()));
-    // Request the first update with a timeout to 30 minutes which is needed on devices that don't make use of `A-GNSS`
-    // and can't get a lock within Qt's default `UPDATE_TIMEOUT_COLDSTART` (currently 2 minutes).
-    m_positionSource->requestUpdate(1800000);
-  }
-}
-
-void QtLocationService::Stop()
-{
-  if (m_positionSource && m_clientIsActive)
-  {
-    LOG(LDEBUG, ("Stopping Updates from:", m_positionSource->sourceName().toStdString()));
-    m_positionSource->stopUpdates();
-  }
-}
 
 std::unique_ptr<location::LocationService> CreateQtLocationService(location::LocationObserver & observer,
                                                                    std::string const & sourceName)

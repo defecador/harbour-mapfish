@@ -6,14 +6,18 @@ if (NOT SKIP_QT_GUI AND PLATFORM_DESKTOP AND PLATFORM_LINUX)
   set(QT_LOCATION_SERVICE true)
 elseif(NOT SKIP_QT_GUI AND PLATFORM_DESKTOP AND PLATFORM_MAC)
   set(APPLE_LOCATION_SERVICE true)
+elseif(PLATFORM_SAILFISH)
+  # Qt5 (Positioning included) was already found for the whole build; nothing more to look up.
+  set(QT_LOCATION_SERVICE true)
 endif()
 
 set(SRC
   location_service.cpp
   location_service.hpp
   $<$<BOOL:${APPLE_LOCATION_SERVICE}>:apple_location_service.mm>
-  $<$<BOOL:${QT_LOCATION_SERVICE}>:qt_location_service.hpp>
   $<$<BOOL:${QT_LOCATION_SERVICE}>:qt_location_service.cpp>
+  $<$<BOOL:${QT_LOCATION_SERVICE}>:qt_position_source.hpp>
+  $<$<BOOL:${QT_LOCATION_SERVICE}>:qt_position_source.cpp>
 )
 
 omim_add_library(${PROJECT_NAME} ${SRC})
@@ -27,7 +31,11 @@ target_link_libraries(${PROJECT_NAME}
 
 if (QT_LOCATION_SERVICE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE "QT_LOCATION_SERVICE")
-  target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Positioning)
+  if (PLATFORM_SAILFISH)
+    target_link_libraries(${PROJECT_NAME} PUBLIC Qt5::Positioning)
+  else()
+    target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::Positioning)
+  endif()
   set_target_properties(${PROJECT_NAME} PROPERTIES AUTOMOC ON)
 elseif(APPLE_LOCATION_SERVICE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE "APPLE_LOCATION_SERVICE")
