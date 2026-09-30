@@ -3,6 +3,7 @@
 // Qt 5.6's moc can't parse the C++23 in CoMaps' headers: keep them out of this one.
 #include <QtQuick/QQuickItem>
 
+#include <atomic>
 #include <memory>
 
 class Framework;
@@ -34,6 +35,7 @@ protected:
 
 private slots:
   void CreateEngine();
+  void RecreateEngine();
   void OnApplicationStateChanged(Qt::ApplicationState state);
 
 private:
@@ -44,5 +46,9 @@ private:
   std::unique_ptr<dp::ThreadSafeFactory> m_contextFactory;
   EglContextFactory * m_eglFactory = nullptr;
   bool m_engineCreated = false;
+  // Set on the render thread when Qt's own context no longer matches what m_eglFactory was built
+  // against (e.g. the window was hidden and shown again, and Qt Quick rebuilt its context); cleared
+  // once RecreateEngine has run on the GUI thread. Guards against queuing it more than once.
+  std::atomic<bool> m_recreatePending{false};
 };
 }  // namespace sailfish

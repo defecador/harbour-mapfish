@@ -14,7 +14,6 @@
 #include "base/assert.hpp"
 #include "base/logging.hpp"
 
-
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
 #include <QtGui/QTouchEvent>
@@ -59,6 +58,19 @@ QSize MapItem::PixelSize() const
 QSGNode * MapItem::updatePaintNode(QSGNode * oldNode, UpdatePaintNodeData *)
 {
   // Runs on the render thread while the GUI thread is blocked, with Qt Quick's context current.
+
+  // Qt Quick can tear down and rebuild its own GL context around the item's lifetime, e.g. when
+  // the window is hidden (app minimized) and shown again. When that happens, m_eglFactory's
+  // contexts are still perfectly valid, but they were shared with a context that no longer
+  // exists, so their textures aren't visible to Qt's new one and the map goes blank. Detect the
+  // mismatch and rebuild everything against the context that is actually current now.
+  if (m_contextFactory && m_eglFactory->SharedWithContext() != eglGetCurrentContext())
+  {
+    if (!m_recreatePending.exchange(true))
+      QMetaObject::invokeMethod(this, "RecreateEngine", Qt::QueuedConnection);
+    return oldNode;
+  }
+
   if (!m_contextFactory)
   {
     QSize const size = PixelSize();
@@ -121,6 +133,24 @@ void MapItem::CreateEngine()
   m_framework.CreateDrapeEngine(make_ref(m_contextFactory), std::move(p));
   m_framework.EnterForeground();
   m_engineCreated = true;
+}
+
+void MapItem::RecreateEngine()
+{
+  // GUI thread. Tear down the engine first: it owns drape's threads, and they are the only other
+  // thing touching m_contextFactory's contexts. Only once they've stopped is it safe to free those
+  // contexts (below, via reset()) and let updatePaintNode rebuild everything from scratch, the same
+  // way it does on first use.
+  LOG(LINFO, ("Qt Quick's GL context changed under the map; recreating the drape engine"));
+  if (m_engineCreated)
+  {
+    m_framework.DestroyDrapeEngine();
+    m_engineCreated = false;
+  }
+  m_contextFactory.reset();
+  m_eglFactory = nullptr;
+  m_recreatePending = false;
+  update();
 }
 
 void MapItem::geometryChanged(QRectF const & newGeometry, QRectF const & oldGeometry)

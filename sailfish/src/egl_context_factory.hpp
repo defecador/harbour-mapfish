@@ -102,6 +102,9 @@ public:
   EglContextFactory(int width, int height, std::function<void()> const & onFrameReady);
 
   bool IsValid() const { return m_shareContext != EGL_NO_CONTEXT; }
+  // The Qt Quick context this factory's contexts were shared with, to detect Qt recreating its
+  // own context later (e.g. after the window is hidden and shown again) and orphaning ours.
+  EGLContext SharedWithContext() const { return m_shareContext; }
 
   dp::GraphicsContext * GetDrawContext() override;
   dp::GraphicsContext * GetResourcesUploadContext() override;
