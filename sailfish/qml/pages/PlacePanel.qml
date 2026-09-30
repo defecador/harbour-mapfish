@@ -87,8 +87,8 @@ DockedPanel {
 
             DetailItem { label: qsTr("Coordinates"); value: placePage.coordinates }
 
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
+            Flow {
+                width: parent.width
                 spacing: Theme.paddingMedium
 
                 Button {
@@ -99,6 +99,10 @@ DockedPanel {
                     text: qsTr("Add stop")
                     visible: route.hasRoute
                     onClicked: route.addStopAtSelection()
+                }
+                Button {
+                    text: qsTr("Transit here")
+                    onClicked: transitRoute.routeToSelection()
                 }
             }
 

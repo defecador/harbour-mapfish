@@ -29,6 +29,8 @@ add_library(comaps_app SHARED
   src/route_controller.hpp
   src/search_model.cpp
   src/search_model.hpp
+  src/transit_route_controller.cpp
+  src/transit_route_controller.hpp
 )
 set_target_properties(comaps_app PROPERTIES AUTOMOC ON OUTPUT_NAME comaps)
 target_compile_options(comaps_app PRIVATE ${OMIM_WARNING_FLAGS})
@@ -43,6 +45,7 @@ target_link_libraries(comaps_app
     Qt5::Quick
     Qt5::Qml
     Qt5::Gui
+    Qt5::Network
     ${SAILFISHAPP_LIBRARIES}
     EGL
     GLESv2

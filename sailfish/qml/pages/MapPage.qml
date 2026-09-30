@@ -31,6 +31,7 @@ Page {
     }
 
     IconButton {
+        id: transitLayerButton
         anchors {
             top: locateButton.bottom; topMargin: Theme.paddingMedium
             left: parent.left; leftMargin: Theme.horizontalPageMargin
@@ -38,6 +39,16 @@ Page {
         icon.source: "image://theme/icon-m-train"
         icon.color: layers.transit ? Theme.highlightColor : "black"
         onClicked: layers.transit = !layers.transit
+    }
+
+    IconButton {
+        anchors {
+            top: transitLayerButton.bottom; topMargin: Theme.paddingMedium
+            left: parent.left; leftMargin: Theme.horizontalPageMargin
+        }
+        icon.source: "image://theme/icon-m-setting"
+        icon.color: "black"
+        onClicked: pageStack.push(Qt.resolvedUrl("TransitOptionsPage.qml"))
     }
 
     IconButton {
@@ -121,6 +132,65 @@ Page {
                 icon.source: "image://theme/icon-m-clear"
                 onClicked: route.clear()
             }
+        }
+    }
+
+    Rectangle {
+        id: transitBar
+        anchors {
+            // Stacks above the walk/bike bar and the place panel, so nothing overlaps.
+            bottom: routeBar.visible ? routeBar.top : (placePanel.open ? placePanel.top : parent.bottom)
+            left: parent.left
+            right: parent.right
+        }
+        height: transitColumn.height + 2 * Theme.paddingMedium
+        color: Theme.overlayBackgroundColor
+        opacity: 0.95
+        visible: transitRoute.active || transitRoute.building || transitRoute.error !== ""
+
+        Column {
+            id: transitColumn
+            anchors {
+                verticalCenter: parent.verticalCenter
+                left: parent.left; leftMargin: Theme.horizontalPageMargin
+                right: clearTransitButton.left; rightMargin: Theme.paddingSmall
+            }
+            spacing: Theme.paddingSmall
+
+            Row {
+                width: parent.width
+                spacing: Theme.paddingMedium
+
+                BusyIndicator {
+                    size: BusyIndicatorSize.Small
+                    running: transitRoute.building
+                    visible: transitRoute.building
+                }
+                Label {
+                    width: parent.width - (transitRoute.building ? parent.spacing + height : 0)
+                    text: transitRoute.active ? transitRoute.summary : transitRoute.error
+                    wrapMode: Text.Wrap
+                    color: transitRoute.error !== "" && !transitRoute.active ? Theme.errorColor : Theme.primaryColor
+                }
+            }
+            Label {
+                width: parent.width
+                visible: transitRoute.active
+                text: transitRoute.legs
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.secondaryColor
+            }
+        }
+
+        IconButton {
+            id: clearTransitButton
+            anchors {
+                top: parent.top; topMargin: Theme.paddingSmall
+                right: parent.right; rightMargin: Theme.paddingSmall
+            }
+            icon.source: "image://theme/icon-m-clear"
+            onClicked: transitRoute.clear()
         }
     }
 }
