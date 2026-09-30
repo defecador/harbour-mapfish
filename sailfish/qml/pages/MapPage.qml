@@ -32,6 +32,16 @@ Page {
 
     IconButton {
         anchors {
+            top: locateButton.bottom; topMargin: Theme.paddingMedium
+            left: parent.left; leftMargin: Theme.horizontalPageMargin
+        }
+        icon.source: "image://theme/icon-m-train"
+        icon.color: layers.transit ? Theme.highlightColor : "black"
+        onClicked: layers.transit = !layers.transit
+    }
+
+    IconButton {
+        anchors {
             top: parent.top; topMargin: Theme.paddingLarge * 2
             right: downloadButton.left; rightMargin: Theme.paddingLarge
         }

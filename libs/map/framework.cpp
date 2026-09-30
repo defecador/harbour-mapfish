@@ -2750,8 +2750,8 @@ MapMode Framework::CurrentMapMode()
     mapMode = MapMode::Driving;
   else if (mapModeValue == "PublicTransport")
     mapMode = MapMode::PublicTransport;
-#ifdef OMIM_OS_ANDROID
-  // Default mode is only shipped on Android
+#if defined(OMIM_OS_ANDROID) || defined(OMIM_OS_SAILFISH)
+  // Default mode is only shipped on Android and Sailfish
   else if (mapModeValue == "Default")
     mapMode = MapMode::Default;
 #endif

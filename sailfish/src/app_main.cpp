@@ -1,5 +1,6 @@
 #include "sailfish/src/country_model.hpp"
 #include "sailfish/src/location_controller.hpp"
+#include "sailfish/src/map_layers.hpp"
 #include "sailfish/src/map_item.hpp"
 #include "sailfish/src/place_page.hpp"
 #include "sailfish/src/search_model.hpp"
@@ -50,6 +51,7 @@ __attribute__((visibility("default"))) int ComapsMain(int argc, char * argv[])
 
     sailfish::PlacePage placePage(framework);
     sailfish::LocationController locationController(framework);
+    sailfish::MapLayers mapLayers(framework);
 
     std::unique_ptr<QQuickView> view(SailfishApp::createView());
     // Drape's contexts are OpenGL ES 3 and share textures with Qt Quick's; the Mali driver only
@@ -59,6 +61,7 @@ __attribute__((visibility("default"))) int ComapsMain(int argc, char * argv[])
     view->setFormat(format);
     view->rootContext()->setContextProperty(QStringLiteral("placePage"), &placePage);
     view->rootContext()->setContextProperty(QStringLiteral("location"), &locationController);
+    view->rootContext()->setContextProperty(QStringLiteral("layers"), &mapLayers);
     view->setSource(SailfishApp::pathToMainQml());
     view->show();
 

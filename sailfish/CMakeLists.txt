@@ -19,6 +19,8 @@ add_library(comaps_app SHARED
   src/egl_context_factory.hpp
   src/location_controller.cpp
   src/location_controller.hpp
+  src/map_layers.cpp
+  src/map_layers.hpp
   src/map_item.cpp
   src/map_item.hpp
   src/place_page.cpp
