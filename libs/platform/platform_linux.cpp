@@ -19,6 +19,7 @@
 #include <initializer_list>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <fcntl.h>
 #include <stdlib.h>
@@ -46,6 +47,20 @@ std::optional<std::string> GetExecutableDir()
   *(strrchr(path, '/') + 1) = '\0';
   return path;
 }
+
+#ifdef OMIM_OS_SAILFISH
+// Returns the running binary's own file name (e.g. "harbour-mapfish"), which on Sailfish is also
+// the RPM package name and therefore its share/ subdirectory's name: don't hardcode it, or a
+// renamed package's data dir silently falls back to whatever the resources scan finds next.
+std::optional<std::string> GetExecutableName()
+{
+  char path[PATH_MAX] = {};
+  if (::readlink("/proc/self/exe", path, ARRAY_SIZE(path)) <= 0)
+    return {};
+  char const * slash = strrchr(path, '/');
+  return slash ? std::string(slash + 1) : std::string(path);
+}
+#endif  // OMIM_OS_SAILFISH
 
 // Returns true if EULA file exists in a directory.
 bool IsWelcomeExist(std::string const & dir)
@@ -106,17 +121,20 @@ Platform::Platform()
     m_resourcesDir = *dir;
   else
   {  // Guess the existing resources directory.
-    std::string const dirsToScan[] = {
+    std::vector<std::string> dirsToScan = {
         "./data",                                             // symlink in the current folder
         "../data",                                            // 'build' folder inside the repo
         JoinPath(*execDir, "..", "comaps", "data"),           // build-omim-{debug,release}
         JoinPath(*execDir, "..", "share"),                    // installed version with packages
         JoinPath(*execDir, "..", "CoMaps"),                   // installed version without packages
         JoinPath(*execDir, "..", "share", "comaps", "data"),  // flatpak-build
-#ifdef OMIM_OS_SAILFISH
-        JoinPath(*execDir, "..", "share", "harbour-comaps", "data"),
-#endif
     };
+#ifdef OMIM_OS_SAILFISH
+    // The RPM installs data under share/<package name>/data; derive the package name from the
+    // running binary rather than hardcoding it, so a renamed package finds its own data.
+    if (auto const exeName = GetExecutableName())
+      dirsToScan.push_back(JoinPath(*execDir, "..", "share", *exeName, "data"));
+#endif
     for (auto const & dir : dirsToScan)
     {
       if (IsWelcomeExist(dir))
