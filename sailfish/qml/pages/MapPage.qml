@@ -65,4 +65,62 @@ Page {
     PlacePanel {
         id: placePanel
     }
+
+    Rectangle {
+        id: routeBar
+        anchors {
+            // Sits above the place panel's own buttons instead of covering them while it's open.
+            bottom: placePanel.open ? placePanel.top : parent.bottom
+            left: parent.left
+            right: parent.right
+        }
+        height: routeRow.height + 2 * Theme.paddingMedium
+        color: Theme.overlayBackgroundColor
+        opacity: 0.95
+        visible: route.active || route.building || route.error !== ""
+
+        Row {
+            id: routeRow
+            anchors {
+                verticalCenter: parent.verticalCenter
+                left: parent.left; leftMargin: Theme.horizontalPageMargin
+                right: routeControls.left; rightMargin: Theme.paddingSmall
+            }
+            spacing: Theme.paddingMedium
+
+            BusyIndicator {
+                size: BusyIndicatorSize.Small
+                running: route.building
+                visible: route.building
+            }
+            Label {
+                width: parent.width - (route.building ? parent.spacing + height : 0)
+                text: route.active ? (route.mode === 1 ? qsTr("Bike: %1, %2") : qsTr("Walk: %1, %2"))
+                                      .arg(route.distance).arg(route.time)
+                                    : route.error
+                wrapMode: Text.Wrap
+                color: route.error !== "" && !route.active ? Theme.errorColor : Theme.primaryColor
+            }
+        }
+
+        Row {
+            id: routeControls
+            anchors {
+                verticalCenter: parent.verticalCenter
+                right: parent.right; rightMargin: Theme.paddingSmall
+            }
+
+            Button {
+                preferredWidth: Theme.buttonWidthSmall
+                // No cycling icon in the theme; switching to the other mode is rare enough that a
+                // text label reads fine next to the clear button.
+                text: route.mode === 1 ? qsTr("Walk") : qsTr("Bike")
+                onClicked: route.mode = route.mode === 1 ? 0 : 1
+            }
+            IconButton {
+                icon.source: "image://theme/icon-m-clear"
+                onClicked: route.clear()
+            }
+        }
+    }
 }

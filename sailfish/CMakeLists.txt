@@ -25,6 +25,8 @@ add_library(comaps_app SHARED
   src/map_item.hpp
   src/place_page.cpp
   src/place_page.hpp
+  src/route_controller.cpp
+  src/route_controller.hpp
   src/search_model.cpp
   src/search_model.hpp
 )

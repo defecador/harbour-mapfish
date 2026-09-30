@@ -87,6 +87,21 @@ DockedPanel {
 
             DetailItem { label: qsTr("Coordinates"); value: placePage.coordinates }
 
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: Theme.paddingMedium
+
+                Button {
+                    text: route.mode === 1 ? qsTr("Bike here") : qsTr("Walk here")
+                    onClicked: route.routeToSelection()
+                }
+                Button {
+                    text: qsTr("Add stop")
+                    visible: route.hasRoute
+                    onClicked: route.addStopAtSelection()
+                }
+            }
+
             Label {
                 width: parent.width
                 visible: text !== ""
