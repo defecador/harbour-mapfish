@@ -125,7 +125,14 @@ void MapItem::CreateEngine()
 
   gui::Skin skin(gui::ResolveGuiSkinFile("default"), p.m_visualScale);
   skin.Resize(p.m_surfaceWidth, p.m_surfaceHeight);
-  skin.ForEach([&p](gui::EWidget widget, gui::Position const & pos) { p.m_widgetsInitInfo[widget] = pos; });
+  // The compass defaults to the top right corner, where the app's own buttons sit: push it down.
+  float const compassDrop = static_cast<float>(2.0 / 2.54 * dpi);  // 2 cm in pixels
+  skin.ForEach([&p, compassDrop](gui::EWidget widget, gui::Position const & pos)
+  {
+    p.m_widgetsInitInfo[widget] = pos;
+    if (widget == gui::WIDGET_COMPASS)
+      p.m_widgetsInitInfo[widget].m_pixelPivot.y += compassDrop;
+  });
 
   LOG(LINFO, ("Creating the drape engine:", size.width(), "x", size.height(), "px,", dpi, "dpi, visual scale",
               p.m_visualScale));
