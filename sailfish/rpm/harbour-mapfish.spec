@@ -49,6 +49,9 @@ DESTDIR=%{buildroot} cmake -P sailfish/cmake_install.cmake
 desktop-file-install --delete-original       \
   --dir %{buildroot}%{_datadir}/applications \
    %{buildroot}%{_datadir}/applications/*.desktop
+# The build is RelWithDebInfo and the automatic strip step skips the private library under
+# share/, leaving ~350 MB of debug info on the root partition; stripped it is ~16 MB.
+strip --strip-unneeded %{buildroot}%{_bindir}/%{name} %{buildroot}%{_datadir}/%{name}/lib/libcomaps.so
 
 %files
 %defattr(-,root,root,-)
