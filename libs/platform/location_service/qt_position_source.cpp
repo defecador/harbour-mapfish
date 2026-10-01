@@ -76,6 +76,14 @@ void QtPositionSource::Start()
   // never complete); every other app on this platform gets a fix via continuous updates instead.
   m_clientIsActive = true;
   m_source->startUpdates();
+
+  // Surface whatever geoclue already has cached (often a WiFi/cell-based mlsdb fix, or an old GPS
+  // fix) right away, rather than leaving the map blank until the first fresh update arrives. This
+  // matters most exactly where live GPS can't work at all, e.g. underground: a stale-but-nearby
+  // fix beats no fix.
+  QGeoPositionInfo const lastKnown = m_source->lastKnownPosition();
+  if (lastKnown.isValid())
+    OnLocationUpdate(lastKnown);
 #else
   // Request the first update with a timeout to 30 minutes which is needed on devices that don't make use of `A-GNSS`
   // and can't get a lock within Qt's default `UPDATE_TIMEOUT_COLDSTART` (currently 2 minutes).
