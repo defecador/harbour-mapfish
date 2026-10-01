@@ -19,6 +19,14 @@ Page {
         model: results
         currentIndex: -1
 
+        PullDownMenu {
+            visible: results.showingHistory && list.count > 0
+            MenuItem {
+                text: qsTr("Clear recent searches")
+                onClicked: results.clearHistory()
+            }
+        }
+
         header: Column {
             width: list.width
 
@@ -80,7 +88,7 @@ Page {
         }
 
         ViewPlaceholder {
-            enabled: list.count === 0 && !results.busy && results.query.trim() !== ""
+            enabled: list.count === 0 && !results.busy && !results.showingHistory
             text: qsTr("Nothing found")
             hintText: qsTr("Search covers the maps you have downloaded")
         }

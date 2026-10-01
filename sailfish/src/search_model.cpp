@@ -31,7 +31,9 @@ SearchModel::SearchModel(QObject * parent)
   : QAbstractListModel(parent)
   , m_framework(*g_searchFramework)
   , m_results(std::make_unique<search::Results>())
-{}
+{
+  LoadHistory();
+}
 
 SearchModel::~SearchModel()
 {
@@ -42,7 +44,13 @@ void SearchModel::SetQuery(QString const & query)
 {
   if (query == m_query)
     return;
+  // The rows switch between recent searches and results as the query goes empty or not.
+  bool const wasHistory = ShowingHistory();
+  if (wasHistory != query.trimmed().isEmpty())
+    beginResetModel();
   m_query = query;
+  if (wasHistory != ShowingHistory())
+    endResetModel();
   emit queryChanged();
 
   // Results of older queries arrive late; the timestamp tells them apart.
@@ -71,6 +79,7 @@ void SearchModel::OnResults(uint64_t timestamp, search::Results && results)
 
   beginResetModel();
   *m_results = std::move(results);
+  LoadHistory();
   endResetModel();
 
   m_framework.FillSearchResultsMarks(true /* clear */, *m_results);
@@ -85,15 +94,44 @@ void SearchModel::SetBusy(bool busy)
   emit busyChanged();
 }
 
+void SearchModel::LoadHistory()
+{
+  m_history.clear();
+  for (auto const & request : m_framework.GetSearchAPI().GetLastSearchQueries())
+    m_history << QString::fromStdString(request.second);
+}
+
+void SearchModel::clearHistory()
+{
+  m_framework.GetSearchAPI().ClearSearchHistory();
+  beginResetModel();
+  LoadHistory();
+  endResetModel();
+}
+
 int SearchModel::rowCount(QModelIndex const & parent) const
 {
-  return parent.isValid() ? 0 : static_cast<int>(m_results->GetCount());
+  if (parent.isValid())
+    return 0;
+  return ShowingHistory() ? m_history.size() : static_cast<int>(m_results->GetCount());
 }
 
 QVariant SearchModel::data(QModelIndex const & index, int role) const
 {
   if (!index.isValid() || index.row() >= rowCount())
     return {};
+
+  // With an empty query the rows are recent searches; as suggestions they refill the query.
+  if (ShowingHistory())
+  {
+    QString const & query = m_history[index.row()];
+    switch (role)
+    {
+    case NameRole:
+    case SuggestionRole: return query;
+    default: return QString();
+    }
+  }
 
   auto const & result = (*m_results)[index.row()];
   switch (role)
@@ -117,8 +155,10 @@ QHash<int, QByteArray> SearchModel::roleNames() const
 
 void SearchModel::show(int row)
 {
-  if (row < 0 || row >= rowCount())
+  if (row < 0 || row >= rowCount() || ShowingHistory())
     return;
+  // Picking a result is what makes a query worth remembering.
+  m_framework.GetSearchAPI().SaveSearchQuery({InputLocale(), m_query.trimmed().toStdString()});
   m_framework.ShowSearchResult((*m_results)[row]);
 }
 
