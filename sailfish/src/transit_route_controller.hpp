@@ -3,6 +3,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QPointF>
 #include <QtCore/QString>
+#include <QtCore/QVariantList>
 #include <QtCore/QVector>
 
 class Framework;
@@ -44,7 +45,8 @@ class TransitRouteController : public QObject
   Q_PROPERTY(bool building READ Building NOTIFY changed)
   Q_PROPERTY(QString error READ Error NOTIFY changed)
   Q_PROPERTY(QString summary READ Summary NOTIFY changed)
-  Q_PROPERTY(QString legs READ Legs NOTIFY changed)
+  // One {mode, text} map per leg of the chosen itinerary, for the QML list with mode icons.
+  Q_PROPERTY(QVariantList legs READ Legs NOTIFY changed)
   // 0 = fastest, 1 = fewest changes, 2 = least walking. Re-sorts the already-fetched itineraries;
   // does not re-query.
   Q_PROPERTY(int sort READ Sort WRITE SetSort NOTIFY changed)
@@ -60,7 +62,7 @@ public:
   bool Building() const { return m_building; }
   QString Error() const { return m_error; }
   QString Summary() const { return m_summary; }
-  QString Legs() const { return m_legs; }
+  QVariantList Legs() const { return m_legs; }
 
   int Sort() const { return m_sort; }
   void SetSort(int sort);
@@ -118,6 +120,6 @@ private:
   bool m_excludeRail = false;
   QString m_error;
   QString m_summary;
-  QString m_legs;
+  QVariantList m_legs;
 };
 }  // namespace sailfish

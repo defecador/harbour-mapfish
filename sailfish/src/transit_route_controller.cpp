@@ -287,18 +287,22 @@ void TransitRouteController::ApplyBestItinerary()
                   .arg(changesText)
                   .arg(FormatDistance(best.m_walkDistanceM));
 
-  QStringList lines;
+  m_legs.clear();
   for (auto const & leg : best.m_legs)
   {
+    QString text;
     if (leg.m_mode == "WALK")
-      lines << tr("Walk %1 to %2").arg(FormatTransitDuration(leg.m_durationSec)).arg(leg.m_toName);
+      text = tr("Walk %1 to %2").arg(FormatTransitDuration(leg.m_durationSec)).arg(leg.m_toName);
     else
-      lines << tr("%1 to %2 (%3)")
-                   .arg(leg.m_line.isEmpty() ? leg.m_mode : leg.m_line)
-                   .arg(leg.m_toName)
-                   .arg(FormatTransitDuration(leg.m_durationSec));
+      text = tr("%1 to %2 (%3)")
+                 .arg(leg.m_line.isEmpty() ? leg.m_mode : leg.m_line)
+                 .arg(leg.m_toName)
+                 .arg(FormatTransitDuration(leg.m_durationSec));
+    QVariantMap item;
+    item["mode"] = leg.m_mode;
+    item["text"] = text;
+    m_legs.append(item);
   }
-  m_legs = lines.join('\n');
 
   DrawSelected(best);
   emit changed();

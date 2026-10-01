@@ -173,13 +173,32 @@ Page {
                     color: transitRoute.error !== "" && !transitRoute.active ? Theme.errorColor : Theme.primaryColor
                 }
             }
-            Label {
-                width: parent.width
-                visible: transitRoute.active
-                text: transitRoute.legs
-                wrapMode: Text.Wrap
-                font.pixelSize: Theme.fontSizeSmall
-                color: Theme.secondaryColor
+            Repeater {
+                model: transitRoute.legs
+
+                Row {
+                    width: transitColumn.width
+                    spacing: Theme.paddingMedium
+
+                    Image {
+                        id: modeIcon
+                        width: Theme.iconSizeSmall; height: width
+                        sourceSize: Qt.size(width, height)
+                        smooth: true
+                        source: Qt.resolvedUrl("../icons/" + ({
+                            "WALK": "walk", "BUS": "bus", "COACH": "bus", "TRAM": "tram",
+                            "SUBWAY": "subway", "FERRY": "ferry"
+                        }[modelData.mode] || "train") + ".png")
+                    }
+                    Label {
+                        width: parent.width - modeIcon.width - parent.spacing
+                        anchors.verticalCenter: modeIcon.verticalCenter
+                        text: modelData.text
+                        wrapMode: Text.Wrap
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.secondaryColor
+                    }
+                }
             }
         }
 
