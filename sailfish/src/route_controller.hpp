@@ -7,6 +7,8 @@ class Framework;
 
 namespace sailfish
 {
+class TripOrigin;
+
 // Walking directions from the device's position to the current place-page selection. Exposed to
 // QML as "route". There is one route at a time, so there is one instance.
 class RouteController : public QObject
@@ -22,7 +24,7 @@ class RouteController : public QObject
   Q_PROPERTY(int mode READ Mode WRITE SetMode NOTIFY changed)
 
 public:
-  explicit RouteController(Framework & framework, QObject * parent = nullptr);
+  RouteController(Framework & framework, TripOrigin & origin, QObject * parent = nullptr);
 
   bool Active() const { return m_active; }
   bool Building() const { return m_building; }
@@ -47,7 +49,11 @@ signals:
   void changed();
 
 private:
+  // Rebuilds the route from the new origin, if there is one.
+  void OnOriginChanged();
+
   Framework & m_framework;
+  TripOrigin & m_origin;
   bool m_active = false;
   bool m_building = false;
   bool m_hasRoute = false;

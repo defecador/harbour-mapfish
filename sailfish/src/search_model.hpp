@@ -17,6 +17,8 @@ class Results;
 
 namespace sailfish
 {
+class TripOrigin;
+
 // Results of a search across all downloaded maps, refreshed as the query changes.
 class SearchModel : public QAbstractListModel
 {
@@ -39,6 +41,7 @@ public:
   ~SearchModel() override;
 
   static void SetFramework(Framework * framework);
+  static void SetTripOrigin(TripOrigin * origin);
 
   int rowCount(QModelIndex const & parent = QModelIndex()) const override;
   QVariant data(QModelIndex const & index, int role) const override;
@@ -51,6 +54,9 @@ public:
 
   // Moves the map to a result and marks it. Suggestions aren't places: QML replaces the query.
   Q_INVOKABLE void show(int row);
+  // Makes a result the start of trips instead of the device's position. Does nothing for rows
+  // that are not places.
+  Q_INVOKABLE void pickOrigin(int row);
   // Forgets the recent searches shown while the query is empty.
   Q_INVOKABLE void clearHistory();
   // Leaves the markers of the current results on the map, or clears them.

@@ -5,6 +5,9 @@ import app.mapfish 1.0
 Page {
     id: page
 
+    // True when the page was opened to choose where trips start from, not to look at a place.
+    property bool pickOrigin: false
+
     allowedOrientations: Orientation.Portrait
 
     SearchModel {
@@ -31,7 +34,7 @@ Page {
             width: list.width
 
             PageHeader {
-                title: qsTr("Search")
+                title: page.pickOrigin ? qsTr("Start from") : qsTr("Search")
             }
 
             SearchField {
@@ -59,7 +62,10 @@ Page {
                     results.query = model.suggestion
                     return
                 }
-                results.show(index)
+                if (page.pickOrigin)
+                    results.pickOrigin(index)
+                else
+                    results.show(index)
                 pageStack.pop()
             }
 

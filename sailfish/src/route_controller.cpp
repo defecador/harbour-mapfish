@@ -1,5 +1,7 @@
 #include "sailfish/src/route_controller.hpp"
 
+#include "sailfish/src/trip_origin.hpp"
+
 #include "map/framework.hpp"
 #include "map/place_page_info.hpp"
 #include "map/routing_manager.hpp"
@@ -26,6 +28,16 @@ routing::RouterType ToRouterType(int mode)
   return mode == 1 ? routing::RouterType::Bicycle : routing::RouterType::Pedestrian;
 }
 
+RouteMarkData MakeStart(TripOrigin const & origin)
+{
+  RouteMarkData start;
+  start.m_pointType = RouteMarkType::Start;
+  start.m_isMyPosition = !origin.Custom();
+  if (origin.Custom())
+    start.m_position = m2::PointD(origin.X(), origin.Y());
+  return start;
+}
+
 QString ErrorMessage(routing::RouterResultCode code)
 {
   using routing::RouterResultCode;
@@ -44,8 +56,10 @@ QString ErrorMessage(routing::RouterResultCode code)
 }
 }  // namespace
 
-RouteController::RouteController(Framework & framework, QObject * parent) : QObject(parent), m_framework(framework)
+RouteController::RouteController(Framework & framework, TripOrigin & origin, QObject * parent)
+  : QObject(parent), m_framework(framework), m_origin(origin)
 {
+  connect(&m_origin, &TripOrigin::changed, this, &RouteController::OnOriginChanged);
   m_framework.GetRoutingManager().SetRouteBuildingListener(
       [this](routing::RouterResultCode code, storage::CountriesSet const &)
   {
@@ -95,10 +109,7 @@ void RouteController::routeToSelection()
   routingManager.CloseRouting(true /* removeRoutePoints */);
   routingManager.SetRouter(ToRouterType(m_mode));
 
-  RouteMarkData start;
-  start.m_pointType = RouteMarkType::Start;
-  start.m_isMyPosition = true;
-  routingManager.AddRoutePoint(std::move(start));
+  routingManager.AddRoutePoint(MakeStart(m_origin));
 
   RouteMarkData finish;
   finish.m_pointType = RouteMarkType::Finish;
@@ -107,6 +118,19 @@ void RouteController::routeToSelection()
 
   m_building = true;
   m_hasRoute = true;
+  m_error.clear();
+  emit changed();
+  routingManager.BuildRoute();
+}
+
+void RouteController::OnOriginChanged()
+{
+  if (!m_hasRoute)
+    return;
+  auto & routingManager = m_framework.GetRoutingManager();
+  // Adding a start point replaces the current one.
+  routingManager.AddRoutePoint(MakeStart(m_origin));
+  m_building = true;
   m_error.clear();
   emit changed();
   routingManager.BuildRoute();

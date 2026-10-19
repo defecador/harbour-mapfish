@@ -1,5 +1,7 @@
 #include "sailfish/src/transit_route_controller.hpp"
 
+#include "sailfish/src/trip_origin.hpp"
+
 #include "map/framework.hpp"
 #include "map/place_page_info.hpp"
 
@@ -16,6 +18,7 @@
 #include <QtNetwork/QNetworkRequest>
 
 #include <algorithm>
+#include <optional>
 #include <cmath>
 
 namespace sailfish
@@ -156,9 +159,10 @@ TransitItinerary ParseItinerary(QJsonObject const & obj)
 }
 }  // namespace
 
-TransitRouteController::TransitRouteController(Framework & framework, QObject * parent)
-  : QObject(parent), m_framework(framework), m_net(new QNetworkAccessManager(this))
+TransitRouteController::TransitRouteController(Framework & framework, TripOrigin & origin, QObject * parent)
+  : QObject(parent), m_framework(framework), m_origin(origin), m_net(new QNetworkAccessManager(this))
 {
+  connect(&m_origin, &TripOrigin::changed, this, &TransitRouteController::OnOriginChanged);
 }
 
 void TransitRouteController::SetSort(int sort)
@@ -177,8 +181,25 @@ void TransitRouteController::routeToSelection()
   if (!m_framework.HasPlacePageInfo())
     return;
 
-  auto const myPosition = m_framework.GetCurrentPosition();
-  if (!myPosition)
+  auto const & destination = m_framework.GetCurrentPlacePageInfo().GetMercator();
+  m_hasDestination = true;
+  m_destinationX = destination.x;
+  m_destinationY = destination.y;
+  Query();
+}
+
+void TransitRouteController::OnOriginChanged()
+{
+  if (m_hasDestination)
+    Query();
+}
+
+void TransitRouteController::Query()
+{
+  std::optional<m2::PointD> const start =
+      m_origin.Custom() ? std::optional<m2::PointD>(m2::PointD(m_origin.X(), m_origin.Y()))
+                        : m_framework.GetCurrentPosition();
+  if (!start)
   {
     m_error = tr("Waiting for GPS position");
     m_active = false;
@@ -195,8 +216,8 @@ void TransitRouteController::routeToSelection()
     return;
   }
 
-  ms::LatLon const from = mercator::ToLatLon(*myPosition);
-  ms::LatLon const to = mercator::ToLatLon(m_framework.GetCurrentPlacePageInfo().GetMercator());
+  ms::LatLon const from = mercator::ToLatLon(*start);
+  ms::LatLon const to = mercator::ToLatLon(m2::PointD(m_destinationX, m_destinationY));
 
   QUrl url(kApiUrl);
   QUrlQuery query;
@@ -214,7 +235,15 @@ void TransitRouteController::routeToSelection()
   m_error.clear();
   emit changed();
 
-  connect(m_net->get(request), &QNetworkReply::finished, this, &TransitRouteController::OnReply);
+  // A newer query replaces one still in flight; its answer would be for the wrong origin.
+  if (m_reply)
+  {
+    m_reply->disconnect(this);
+    m_reply->abort();
+    m_reply->deleteLater();
+  }
+  m_reply = m_net->get(request);
+  connect(m_reply, &QNetworkReply::finished, this, &TransitRouteController::OnReply);
 }
 
 void TransitRouteController::OnReply()
@@ -223,6 +252,7 @@ void TransitRouteController::OnReply()
   if (!reply)
     return;
   reply->deleteLater();
+  m_reply = nullptr;
 
   m_building = false;
 
@@ -331,6 +361,14 @@ void TransitRouteController::DrawSelected(TransitItinerary const & itinerary)
 
 void TransitRouteController::clear()
 {
+  m_hasDestination = false;
+  if (m_reply)
+  {
+    m_reply->disconnect(this);
+    m_reply->abort();
+    m_reply->deleteLater();
+    m_reply = nullptr;
+  }
   m_framework.GetDrapeApi().Clear();
   m_itineraries.clear();
   m_active = false;

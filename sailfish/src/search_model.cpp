@@ -1,5 +1,7 @@
 #include "sailfish/src/search_model.hpp"
 
+#include "sailfish/src/trip_origin.hpp"
+
 #include "map/everywhere_search_params.hpp"
 #include "map/framework.hpp"
 
@@ -13,6 +15,7 @@ namespace sailfish
 namespace
 {
 Framework * g_searchFramework = nullptr;
+TripOrigin * g_tripOrigin = nullptr;
 
 std::string InputLocale()
 {
@@ -25,6 +28,11 @@ std::string InputLocale()
 void SearchModel::SetFramework(Framework * framework)
 {
   g_searchFramework = framework;
+}
+
+void SearchModel::SetTripOrigin(TripOrigin * origin)
+{
+  g_tripOrigin = origin;
 }
 
 SearchModel::SearchModel(QObject * parent)
@@ -160,6 +168,17 @@ void SearchModel::show(int row)
   // Picking a result is what makes a query worth remembering.
   m_framework.GetSearchAPI().SaveSearchQuery({InputLocale(), m_query.trimmed().toStdString()});
   m_framework.ShowSearchResult((*m_results)[row]);
+}
+
+void SearchModel::pickOrigin(int row)
+{
+  if (!g_tripOrigin || row < 0 || row >= rowCount() || ShowingHistory())
+    return;
+  auto const & result = (*m_results)[row];
+  if (!result.HasPoint())
+    return;
+  m2::PointD const center = result.GetFeatureCenter();
+  g_tripOrigin->Set(QString::fromStdString(result.GetString()), center.x, center.y);
 }
 
 void SearchModel::clearMarks()

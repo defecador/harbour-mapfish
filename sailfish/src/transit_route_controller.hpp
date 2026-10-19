@@ -12,6 +12,8 @@ class QNetworkReply;
 
 namespace sailfish
 {
+class TripOrigin;
+
 // A single leg of a public-transport itinerary (a walk, or a ride on one line). Plain Qt types
 // only, so this can live in the moc'd header alongside TransitRouteController.
 struct TransitLeg
@@ -56,7 +58,7 @@ class TransitRouteController : public QObject
   Q_PROPERTY(bool excludeRail READ ExcludeRail WRITE SetExcludeRail NOTIFY changed)
 
 public:
-  explicit TransitRouteController(Framework & framework, QObject * parent = nullptr);
+  TransitRouteController(Framework & framework, TripOrigin & origin, QObject * parent = nullptr);
 
   bool Active() const { return m_active; }
   bool Building() const { return m_building; }
@@ -104,11 +106,19 @@ private slots:
   void OnReply();
 
 private:
+  // Asks Transitous for a journey to the remembered destination, from the origin.
+  void Query();
+  void OnOriginChanged();
   void ApplyBestItinerary();
   void DrawSelected(TransitItinerary const & itinerary);
 
   Framework & m_framework;
+  TripOrigin & m_origin;
   QNetworkAccessManager * m_net;
+  QNetworkReply * m_reply = nullptr;
+  bool m_hasDestination = false;
+  double m_destinationX = 0;  // Mercator.
+  double m_destinationY = 0;
   QVector<TransitItinerary> m_itineraries;
 
   bool m_active = false;

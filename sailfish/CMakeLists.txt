@@ -31,6 +31,8 @@ add_library(comaps_app SHARED
   src/search_model.hpp
   src/transit_route_controller.cpp
   src/transit_route_controller.hpp
+  src/trip_origin.cpp
+  src/trip_origin.hpp
 )
 set_target_properties(comaps_app PROPERTIES AUTOMOC ON OUTPUT_NAME comaps)
 target_compile_options(comaps_app PRIVATE ${OMIM_WARNING_FLAGS})

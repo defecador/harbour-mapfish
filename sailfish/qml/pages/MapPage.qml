@@ -85,15 +85,24 @@ Page {
             left: parent.left
             right: parent.right
         }
-        height: routeRow.height + 2 * Theme.paddingMedium
+        height: routeOrigin.height + routeRow.height + 2 * Theme.paddingMedium
         color: Theme.overlayBackgroundColor
         opacity: 0.95
         visible: route.active || route.building || route.error !== ""
 
+        OriginRow {
+            id: routeOrigin
+            anchors {
+                top: parent.top
+                left: parent.left; leftMargin: Theme.horizontalPageMargin
+                right: parent.right; rightMargin: Theme.horizontalPageMargin
+            }
+        }
+
         Row {
             id: routeRow
             anchors {
-                verticalCenter: parent.verticalCenter
+                top: routeOrigin.bottom
                 left: parent.left; leftMargin: Theme.horizontalPageMargin
                 right: routeControls.left; rightMargin: Theme.paddingSmall
             }
@@ -117,7 +126,7 @@ Page {
         Row {
             id: routeControls
             anchors {
-                verticalCenter: parent.verticalCenter
+                verticalCenter: routeRow.verticalCenter
                 right: parent.right; rightMargin: Theme.paddingSmall
             }
 
@@ -156,6 +165,10 @@ Page {
                 right: clearTransitButton.left; rightMargin: Theme.paddingSmall
             }
             spacing: Theme.paddingSmall
+
+            OriginRow {
+                width: parent.width
+            }
 
             Row {
                 width: parent.width
