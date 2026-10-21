@@ -1,6 +1,6 @@
 Name:       harbour-mapfish
 Summary:    Offline maps and navigation
-Version:    1.0.3
+Version:    1.0.4
 Release:    1
 License:    ASL 2.0
 # Mapfish is an unofficial Sailfish OS port, highly inspired by and built on top of CoMaps
