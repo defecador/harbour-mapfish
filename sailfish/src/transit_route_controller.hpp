@@ -20,7 +20,10 @@ struct TransitLeg
 {
   QString m_mode;      // Transitous' mode string: WALK, TRAM, BUS, SUBWAY, RAIL flavours, ...
   QString m_line;      // Route short name or headsign, e.g. "U1" or "13A". Empty for a walk.
+  QString m_fromName;  // Name of the stop/place this leg starts at.
   QString m_toName;    // Name of the stop/place this leg ends at.
+  QString m_departure; // Local "HH:mm" the leg starts, empty if Transitous gave no time.
+  QString m_arrival;   // Local "HH:mm" the leg ends.
   int m_durationSec = 0;
   double m_distanceM = 0;  // Only meaningful (and only used) for WALK legs.
   QString m_color;         // "#RRGGBB", or empty if Transitous didn't supply one.
@@ -96,6 +99,8 @@ public:
 
   // Queries Transitous for the place-page selection. Does nothing without a selection or a GPS
   // fix; does nothing if every transport type has been excluded.
+  // Moves the map to where step |index| of the legs list ends, which is where the next step starts.
+  Q_INVOKABLE void showStep(int index);
   Q_INVOKABLE void routeToSelection();
   Q_INVOKABLE void clear();
 

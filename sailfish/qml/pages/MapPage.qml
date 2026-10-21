@@ -189,12 +189,15 @@ Page {
             Repeater {
                 model: transitRoute.legs
 
-                Row {
+                // Tapping a step shows on the map where it ends, which is where the next one starts.
+                BackgroundItem {
                     width: transitColumn.width
-                    spacing: Theme.paddingMedium
+                    height: Math.max(stepLabel.height, Theme.iconSizeSmall) + Theme.paddingSmall
+                    onClicked: transitRoute.showStep(index)
 
                     Image {
                         id: modeIcon
+                        anchors { left: parent.left; verticalCenter: parent.verticalCenter }
                         width: Theme.iconSizeSmall; height: width
                         sourceSize: Qt.size(width, height)
                         smooth: true
@@ -204,12 +207,16 @@ Page {
                         }[modelData.mode] || "train") + ".png")
                     }
                     Label {
-                        width: parent.width - modeIcon.width - parent.spacing
-                        anchors.verticalCenter: modeIcon.verticalCenter
+                        id: stepLabel
+                        anchors {
+                            left: modeIcon.right; leftMargin: Theme.paddingMedium
+                            right: parent.right
+                            verticalCenter: parent.verticalCenter
+                        }
                         text: modelData.text
                         wrapMode: Text.Wrap
                         font.pixelSize: Theme.fontSizeSmall
-                        color: Theme.secondaryColor
+                        color: highlighted ? Theme.highlightColor : Theme.secondaryColor
                     }
                 }
             }

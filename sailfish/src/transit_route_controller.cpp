@@ -9,6 +9,7 @@
 
 #include "geometry/mercator.hpp"
 
+#include <QtCore/QDateTime>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -19,6 +20,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <set>
 #include <cmath>
 
 namespace sailfish
@@ -111,15 +113,26 @@ dp::Color ColorForLeg(TransitLeg const & leg)
       return dp::Color(static_cast<uint8_t>((rgb >> 16) & 0xff), static_cast<uint8_t>((rgb >> 8) & 0xff),
                         static_cast<uint8_t>(rgb & 0xff), 255);
   }
+  // Transitous only knows the colour of some lines (Vienna's U-Bahn, not its buses or trams), so the
+  // rest take the colour of their icon in the steps list.
   if (leg.m_mode == "WALK")
-    return dp::Color(120, 120, 120, 255);
+    return dp::Color(107, 114, 128, 255);
   if (leg.m_mode == "TRAM")
-    return dp::Color(200, 30, 30, 255);
+    return dp::Color(214, 58, 58, 255);
   if (leg.m_mode == "BUS" || leg.m_mode == "COACH")
-    return dp::Color(130, 30, 150, 255);
+    return dp::Color(30, 111, 217, 255);
   if (leg.m_mode == "SUBWAY")
-    return dp::Color(30, 100, 200, 255);
-  return dp::Color(30, 150, 90, 255);
+    return dp::Color(123, 63, 160, 255);
+  if (leg.m_mode == "FERRY")
+    return dp::Color(24, 149, 168, 255);
+  return dp::Color(46, 155, 94, 255);
+}
+
+// Transitous gives ISO 8601 timestamps in UTC; the traveller wants the clock on the wall.
+QString LocalTime(QString const & iso)
+{
+  QDateTime const time = QDateTime::fromString(iso, Qt::ISODate);
+  return time.isValid() ? time.toLocalTime().toString("HH:mm") : QString();
 }
 
 TransitItinerary ParseItinerary(QJsonObject const & obj)
@@ -136,7 +149,10 @@ TransitItinerary ParseItinerary(QJsonObject const & obj)
     leg.m_line = legObj.value("routeShortName").toString();
     if (leg.m_line.isEmpty())
       leg.m_line = legObj.value("headsign").toString();
+    leg.m_fromName = legObj.value("from").toObject().value("name").toString();
     leg.m_toName = legObj.value("to").toObject().value("name").toString();
+    leg.m_departure = LocalTime(legObj.value("startTime").toString());
+    leg.m_arrival = LocalTime(legObj.value("endTime").toString());
     leg.m_durationSec = legObj.value("duration").toInt();
     leg.m_distanceM = legObj.value("distance").toDouble();
     QString color = legObj.value("routeColor").toString();
@@ -328,6 +344,8 @@ void TransitRouteController::ApplyBestItinerary()
                  .arg(leg.m_line.isEmpty() ? leg.m_mode : leg.m_line)
                  .arg(leg.m_toName)
                  .arg(FormatTransitDuration(leg.m_durationSec));
+    if (!leg.m_departure.isEmpty())
+      text = leg.m_departure + "  " + text;
     QVariantMap item;
     item["mode"] = leg.m_mode;
     item["text"] = text;
@@ -343,7 +361,22 @@ void TransitRouteController::DrawSelected(TransitItinerary const & itinerary)
   auto & drapeApi = m_framework.GetDrapeApi();
   drapeApi.Clear();
 
+  // Drape API lines are keyed by id, and a marker's id is its text: keep identical labels apart.
+  std::set<std::string> markerIds;
+  auto const addMarker = [&](QString const & label, m2::PointD const & point, dp::Color const & color)
+  {
+    std::string id = label.toStdString();
+    while (markerIds.count(id))
+      id += ' ';
+    markerIds.insert(id);
+    drapeApi.AddLine(id, df::DrapeApiLineData({point}, color).Width(7.0f).ShowPoints(false).ShowId());
+  };
+
+  m2::RectD bounds;
   int legIndex = 0;
+  bool boarded = false;
+  m2::PointD lastPoint;
+  bool hasLast = false;
   for (auto const & leg : itinerary.m_legs)
   {
     if (leg.m_points.size() < 2)
@@ -352,11 +385,57 @@ void TransitRouteController::DrawSelected(TransitItinerary const & itinerary)
     std::vector<m2::PointD> points;
     points.reserve(static_cast<size_t>(leg.m_points.size()));
     for (auto const & p : leg.m_points)
+    {
       points.push_back(mercator::FromLatLon(p.y(), p.x()));
+      bounds.Add(points.back());
+    }
+    lastPoint = points.back();
+    hasLast = true;
 
     drapeApi.AddLine("transit_leg_" + std::to_string(legIndex++),
-                      df::DrapeApiLineData(points, ColorForLeg(leg)).Width(leg.m_mode == "WALK" ? 3.0f : 5.0f));
+                      df::DrapeApiLineData(points, ColorForLeg(leg)).Width(leg.m_mode == "WALK" ? 8.0f : 16.0f));
+
+    // Mark where each ride starts: the first boarding and every change after it, labelled with the
+    // line, the stop and the time. The id of a drape API line is the text drawn at its first point.
+    if (leg.m_mode != "WALK")
+    {
+      QString label = leg.m_line.isEmpty() ? leg.m_mode : leg.m_line;
+      label = (boarded ? tr("Change to %1").arg(label) : label) + "  " + leg.m_fromName;
+      if (!leg.m_departure.isEmpty())
+        label += "\n" + leg.m_departure;
+      boarded = true;
+      addMarker(label, points.front(), ColorForLeg(leg));
+    }
   }
+
+  if (hasLast && !itinerary.m_legs.isEmpty() && !itinerary.m_legs.back().m_arrival.isEmpty())
+    addMarker(tr("Arrive %1").arg(itinerary.m_legs.back().m_arrival), lastPoint, dp::Color(40, 40, 40, 255));
+
+  if (bounds.IsValid())
+  {
+    // Show the whole journey. The bars cover the bottom of the map, so leave room there.
+    double const w = bounds.SizeX();
+    double const h = bounds.SizeY();
+    bounds.Inflate(w * 0.2, h * 0.2);
+    bounds.setMinY(bounds.minY() - h * 0.7);
+    m_framework.ShowRect(bounds);
+  }
+}
+
+void TransitRouteController::showStep(int index)
+{
+  if (m_itineraries.isEmpty())
+    return;
+  auto const & legs = m_itineraries.front().m_legs;
+  if (index < 0 || index >= legs.size() || legs[index].m_points.isEmpty())
+    return;
+
+  QPointF const end = legs[index].m_points.back();
+  m2::PointD const point = mercator::FromLatLon(end.y(), end.x());
+  // Frame a few hundred metres around it, shifted so the point lands above the bars.
+  m2::RectD rect = mercator::RectByCenterXYAndSizeInMeters(point, 350.0);
+  rect.setMinY(rect.minY() - rect.SizeY() * 0.7);
+  m_framework.ShowRect(rect, 17 /* maxScale */);
 }
 
 void TransitRouteController::clear()
